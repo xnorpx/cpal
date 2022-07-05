@@ -293,6 +293,35 @@ unsafe fn format_from_waveformatex_ptr(
             )
         })
         .is_ok();
+
+    let mut default_period_in_frames: u32 = 0;
+    let mut fundamental_period_in_frames: u32 = 0;
+    let mut min_period_in_frames: u32 = 0;
+    let mut max_period_in_frames: u32 = 0;
+
+    let get_shared_mode_engine_period = audio_client
+        .cast::<Audio::IAudioClient3>()
+        .and_then(|audio_client| {
+            audio_client.GetSharedModeEnginePeriod(
+                waveformatex_ptr,
+                &mut default_period_in_frames,
+                &mut fundamental_period_in_frames,
+                &mut min_period_in_frames,
+                &mut max_period_in_frames,
+            )
+        })
+        .is_ok();
+    println!(
+        "default_period_in_frames {},
+         fundamental_period_in_frames {},
+         min_period_in_frames {},
+         max_period_in_frames {}",
+        default_period_in_frames,
+        fundamental_period_in_frames,
+        min_period_in_frames,
+        max_period_in_frames
+    );
+
     let buffer_size = if buffer_size_is_limited {
         SupportedBufferSize::Range {
             min: buffer_duration_to_frames(min_buffer_duration, sample_rate.0),
@@ -300,8 +329,8 @@ unsafe fn format_from_waveformatex_ptr(
         }
     } else {
         SupportedBufferSize::Range {
-            min: 0,
-            max: u32::max_value(),
+            min: min_period_in_frames,
+            max: max_period_in_frames,
         }
     };
 
@@ -311,6 +340,7 @@ unsafe fn format_from_waveformatex_ptr(
         buffer_size,
         sample_format,
     };
+    println!("format: {:?}", format);
     Some(format)
 }
 
@@ -640,6 +670,34 @@ impl Device {
                     Err(_) => return Err(BuildStreamError::DeviceNotAvailable),
                     _ => (),
                 }
+
+                // let buffer_size_is_limited = audio_client
+                //     .cast::<Audio::IAudioClient2>()
+                //     .and_then(|audio_client| {
+                //         audio_client.GetBufferSizeLimits(
+                //             waveformatex_ptr,
+                //             true,
+                //             &mut min_buffer_duration,
+                //             &mut max_buffer_duration,
+                //         )
+                //     })
+                //     .is_ok();
+
+                //                 HRESULT InitializeSharedAudioStream(
+                //   [in]           DWORD              StreamFlags,
+                //   [in]           UINT32             PeriodInFrames,
+                //   [in]           const WAVEFORMATEX *pFormat,
+                //   [in, optional] LPCGUID            AudioSessionGuid
+                // );
+
+                // HRESULT Initialize(
+                //   [in] AUDCLNT_SHAREMODE  ShareMode,
+                //   [in] DWORD              StreamFlags,
+                //   [in] REFERENCE_TIME     hnsBufferDuration,
+                //   [in] REFERENCE_TIME     hnsPeriodicity,
+                //   [in] const WAVEFORMATEX *pFormat,
+                //   [in] LPCGUID            AudioSessionGuid
+                // );
 
                 // Finally, initializing the audio client
                 let hresult = audio_client.Initialize(
