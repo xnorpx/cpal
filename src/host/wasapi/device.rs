@@ -699,15 +699,32 @@ impl Device {
                 //   [in] LPCGUID            AudioSessionGuid
                 // );
 
+                let period_in_frames = match config.buffer_size {
+                    BufferSize::Fixed(frames) => frames,
+                    BufferSize::Default => 0,
+                };
+
+                let hresult =
+                    audio_client
+                        .cast::<Audio::IAudioClient3>()
+                        .and_then(|audio_client| {
+                            audio_client.InitializeSharedAudioStream(
+                                stream_flags,
+                                period_in_frames,
+                                &format_attempt.Format,
+                                ptr::null(),
+                            )
+                        });
+
                 // Finally, initializing the audio client
-                let hresult = audio_client.Initialize(
-                    share_mode,
-                    stream_flags,
-                    buffer_duration,
-                    0,
-                    &format_attempt.Format,
-                    ptr::null(),
-                );
+                // let hresult = audio_client.Initialize(
+                //     share_mode,
+                //     stream_flags,
+                //     buffer_duration,
+                //     0,
+                //     &format_attempt.Format,
+                //     ptr::null(),
+                // );
                 match hresult {
                     Err(ref e) if e.code() == Audio::AUDCLNT_E_DEVICE_INVALIDATED => {
                         return Err(BuildStreamError::DeviceNotAvailable);
@@ -812,17 +829,34 @@ impl Device {
                     _ => (),
                 }
 
-                // Finally, initializing the audio client
+                let period_in_frames = match config.buffer_size {
+                    BufferSize::Fixed(frames) => frames,
+                    BufferSize::Default => 0,
+                };
+
                 audio_client
-                    .Initialize(
-                        share_mode,
-                        Audio::AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-                        buffer_duration,
-                        0,
-                        &format_attempt.Format,
-                        ptr::null(),
-                    )
+                    .cast::<Audio::IAudioClient3>()
+                    .and_then(|audio_client| {
+                        audio_client.InitializeSharedAudioStream(
+                            Audio::AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                            period_in_frames,
+                            &format_attempt.Format,
+                            ptr::null(),
+                        )
+                    })
                     .map_err(windows_err_to_cpal_err::<BuildStreamError>)?;
+
+                // // Finally, initializing the audio client
+                // audio_client
+                //     .Initialize(
+                //         share_mode,
+                //         Audio::AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                //         buffer_duration,
+                //         0,
+                //         &format_attempt.Format,
+                //         ptr::null(),
+                //     )
+                //     .map_err(windows_err_to_cpal_err::<BuildStreamError>)?;
 
                 format_attempt.Format
             };

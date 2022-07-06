@@ -22,10 +22,14 @@ fn main() -> anyhow::Result<()> {
     println!("Using output device: \"{}\"", output_device.name()?);
 
     // We'll try and use the same configuration between streams to keep it simple.
-    let input_config: cpal::StreamConfig = input_device.default_input_config()?.into();
-    println!("input config {:?}", input_config);
-    let output_config: cpal::StreamConfig = output_device.default_output_config()?.into();
-    println!("output config {:?}", output_config);
+    // let input_config = input_device.default_input_config()?;
+    // let input_config: cpal::StreamConfig = input_config.into();
+    // println!("input config {:?}", input_config);
+    // let output_config: cpal::StreamConfig = output_device.default_output_config()?.into();
+    // println!("output config {:?}", output_config);
+
+    let input_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(128) };
+    let output_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(128) };
 
     assert!(input_config == output_config);
 
@@ -39,30 +43,36 @@ fn main() -> anyhow::Result<()> {
         _ => panic!(),
     };
 
-    let output_samples_per_ms = match output_config.sample_rate.0 {
-        48000 => 48,
-        32000 => 32,
-        16000 => 16,
-        _ => panic!(),
-    };
-
+    let mut input_log_once = true;
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-        println!("Mic: {:?}", data.len());
+        if input_log_once {
+            println!("Mic frames (samples per channel): {:?}", data.len() / input_config.channels as usize);
+            input_log_once = false;
+        }
+        
+        let mut log_delay_once = true;
         for (i, &sample) in data.iter().enumerate() {
-            if sample > 0.1 {
+            if sample > 0.3 {
                 let index = i / input_config.channels as usize;
                 let ms = index / input_samples_per_ms;
                 {
-                    let tt = input_tone_time.lock().unwrap();
-                    println!("{:?}", tt.elapsed().unwrap() + Duration::from_millis(ms as u64));
+                    if log_delay_once {
+                        let tt = input_tone_time.lock().unwrap();
+                        println!("{:?}", tt.elapsed().unwrap() + Duration::from_millis(ms as u64));
+                        log_delay_once = false;
+                    }
                 }
 
             }
         }
     };
 
+    let mut output_log_once = true;
     let output_data_fn = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        println!("Speaker: {:?}", data.len());
+        if output_log_once && data.len() <= 279{
+            println!("Speaker frames (samples per channel): {:?}", data.len() / input_config.channels as usize);
+            output_log_once = false;
+        }
         let mut tt = tone_time.lock().unwrap();
         if tt.elapsed().unwrap() > Duration::from_secs(1) {
             data[0] = 1.;
