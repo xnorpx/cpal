@@ -7,7 +7,6 @@
 //! precisely synchronised.
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use windows::Win32::Media::Multimedia::NS_E_INVALID_PLUGIN_LOAD_TYPE_CONFIGURATION;
 use std::time::{Duration, SystemTime};
 use std::sync::{Arc, Mutex};
 
@@ -30,6 +29,9 @@ fn main() -> anyhow::Result<()> {
 
     let input_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(128) };
     let output_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(128) };
+
+    // let input_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(480) };
+    // let output_config: cpal::StreamConfig = cpal::StreamConfig { channels: 2, sample_rate: cpal::SampleRate(48000), buffer_size: cpal::BufferSize::Fixed(480) };
 
     assert!(input_config == output_config);
 
@@ -69,7 +71,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut output_log_once = true;
     let output_data_fn = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        if output_log_once && data.len() <= 279{
+        if output_log_once && data.len() <= 279 {
             println!("Speaker frames (samples per channel): {:?}", data.len() / input_config.channels as usize);
             output_log_once = false;
         }
