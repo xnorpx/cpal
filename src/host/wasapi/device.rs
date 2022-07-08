@@ -299,7 +299,7 @@ unsafe fn format_from_waveformatex_ptr(
     let mut min_period_in_frames: u32 = 0;
     let mut max_period_in_frames: u32 = 0;
 
-    let get_shared_mode_engine_period = audio_client
+    let _get_shared_mode_engine_period = audio_client
         .cast::<Audio::IAudioClient3>()
         .and_then(|audio_client| {
             audio_client.GetSharedModeEnginePeriod(
@@ -649,7 +649,7 @@ impl Device {
                 }
             };
 
-            let buffer_duration =
+            let _buffer_duration =
                 buffer_size_to_duration(&config.buffer_size, config.sample_rate.0);
 
             let mut stream_flags = Audio::AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
@@ -662,7 +662,7 @@ impl Device {
             let waveformatex = {
                 let format_attempt = config_to_waveformatextensible(config, sample_format)
                     .ok_or(BuildStreamError::StreamConfigNotSupported)?;
-                let share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
+                let _share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
 
                 // Ensure the format is supported.
                 match super::device::is_format_supported(&audio_client, &format_attempt.Format) {
@@ -813,14 +813,14 @@ impl Device {
                 .build_audioclient()
                 .map_err(windows_err_to_cpal_err::<BuildStreamError>)?;
 
-            let buffer_duration =
+            let _buffer_duration =
                 buffer_size_to_duration(&config.buffer_size, config.sample_rate.0);
 
             // Computing the format and initializing the device.
             let waveformatex = {
                 let format_attempt = config_to_waveformatextensible(config, sample_format)
                     .ok_or(BuildStreamError::StreamConfigNotSupported)?;
-                let share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
+                let _share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
 
                 // Ensure the format is supported.
                 match super::device::is_format_supported(&audio_client, &format_attempt.Format) {
